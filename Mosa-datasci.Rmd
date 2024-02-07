@@ -1,0 +1,76 @@
+---
+title: "Mosa Data Science"
+author: "Olive"
+date: "2024-01-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      warning = FALSE,
+                      message = FALSE, 
+                      error = TRUE)
+library(tidyverse)
+library(patchwork)
+library(dplyr)
+
+dir.create("figures", showWarnings= FALSE)
+
+```
+
+#MOSA IG WRAPPED: June - December 2023
+
+## Mapping the Best Performance 
+
+```{r}
+
+```
+
+
+
+## Mapping the Best Time for Posting
+
+```{r fig.height=10, fig.width=30}
+mosa_timer <- ggplot(Mosa,aes(Time,Total.Reach)) + geom_point()
+mosa_timer
+
+mosa_timei <- ggplot(Mosa,aes(Time,Total.Imp)) + geom_point(color="blue")
+mosa_timei
+```
+
+
+## Comparing Non-Followers vs. Followers to type of post
+
+Reach is the number of people who viewed the post, divided into followers and non-followers.
+
+
+```{r fig.height=10, fig.width=15}
+mosa_non<-ggplot(Mosa,aes(Post.Type,Non.Followers)) + geom_boxplot(outlier.color = "red")+theme_minimal()+labs(title = "Post Type Outreach to Non-followers")+ylim(0,550)+geom_hline(yintercept=avg_non,color="blue",linetype="dashed")
+
+
+mosa_fol <-ggplot(Mosa,aes(Post.Type,Followers)) + geom_boxplot(outlier.color = "red")+theme_minimal()+labs(title = "Post Type Outreach to Followers")+ ylim(0,550)+geom_hline(yintercept = avg_fol,color="blue",linetype="dashed")
+
+mosa_non + mosa_fol
+
+avg_non<-mean(Mosa$Non.Followers)
+avg_fol<-mean(Mosa$Followers)
+
+sd_non<-sd(Mosa$Non.Followers)
+sd_fol<-sd(Mosa$Followers)
+
+factor_reach<-avg_non/avg_fol *100
+
+```
+
+## Impressions
+
+Impressions are the number of times the post was seen, and where on the app.
+Home Impressions: post viewed from home feed
+Profile Impressions: post viewed from Mosa profile
+Hashtag Impressions: post viewed from IG hashtags
+
+```{r}
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
