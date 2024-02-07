@@ -1,0 +1,201 @@
+---
+title: "Mosa Data Science"
+author: "Olive"
+date: "2024-01-28"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      warning = FALSE,
+                      message = FALSE, 
+                      error = TRUE)
+library(tidyverse)
+library(patchwork)
+library(dplyr)
+
+dir.create("figures", showWarnings= FALSE)
+
+```
+
+```{r,echo=FALSE}
+library(scales)
+library(moments)
+library(corrplot)
+
+Mosa <-read_csv("/Users/olivelin/Desktop/Mosa/Mosa.csv")
+Mosa[62,14]<-"Product"
+```
+
+## Mosa Wrapped: Deep Dive into July-Dec IG Performance
+
+-   69% of our reach are from our followers, while 31% are from non-followers
+
+-   More than 75% of our impressions are views from the Homefeed on Instagram.
+
+-   Our top-performing post for followers was "Company would you rather", and for total reach + non-followers it would be the Mosa "Giveaway".
+
+```{r,echo=FALSE}
+tot_nonfol <- sum(Mosa$`Non-Followers`)
+tot_fol <- sum(Mosa$Followers)
+tot_reach <- sum(Mosa$`Total Reach`)
+
+lreach <- c(tot_fol,tot_nonfol)
+pie_reach <- pie(lreach,labels = c("followers reach","nonfollower reach"))
+
+tot_homeimp <- sum(Mosa$`Home Imp`)
+tot_pfpimp <- sum(Mosa$`Profile Imp`,na.rm = TRUE)
+tot_locimp <- sum(Mosa$`Hashtags/Location Imp`, na.rm = TRUE)
+tot_otherimp <- sum(Mosa$`Other Imp`,na.rm = TRUE)
+tot_imp <- sum(Mosa$`Total Imp`,na.rm = TRUE)
+
+lis_imp <- c(tot_homeimp,tot_pfpimp,tot_locimp,tot_otherimp)
+pie_imp <- pie(lis_imp, labels = c("home imp","profile imp","location imp","other imp"))
+
+ratioreach <- tibble (
+  `followers`= c(sum(Mosa$Followers), percent(sum(Mosa$Followers)/sum(Mosa$`Total Reach`))),
+  `non-followers`=c(sum(Mosa$`Non-Followers`),percent(sum(Mosa$`Non-Followers`)/sum(Mosa$`Total Reach`)))
+)
+ratioreach
+
+
+```
+
+## Time Period for Performance
+
+### Month
+
+-   October performed the best for overall out reach with the majority of the traction gained from Reel content. This was the period of the "Giveaway"
+
+-   June had the best distribution of content growth within the categories Product, Infographic, + Reels. We should take inspiration for future postings on what we did well within this month. Note, that June was our least frequent posting period ( 11 posts) , yet we still managed to outperform July and August -both having 14 posts - with substantially more outreach,
+
+### Day of Week
+
+-   On average, our best performing days are **Mondays, Saturdays, and Thursdays**
+
+-   However, if we look at the distribution of total outreach per posting type:
+
+    -   Reels perform exceptionally well on Saturdays and Sundays
+
+    -   Lifestyle content does better on Wednesdays
+
+    -   Products perform best on Mondays
+
+    -   Infographics in general do best on Thursdays and Tuesdays.
+
+### Time of Day
+
+-   The peak times for all content in general is **1:30pm - 4:30pm** and **6:00pm - 7:30pm (PST)**
+
+    -   Infographics, Products, and Lifestyle typically perform best within that second window of 6-7pm (PST)
+
+    -   Reels perform best during the 1:30pm - 4:30pm time window.
+
+```{r fig.height=7,fig.width=12,echo=FALSE}
+
+date_formated <- paste(match(Mosa$Month,month.name),"-",Mosa$Day,"-",2024)
+daysofw <- weekdays(as.Date(date_formated, format = '%m - %d - %Y')) 
+Mosa$`Days of Week`<-daysofw
+avg_totr<-median(Mosa$`Total Reach`)
+
+dow_cut<-ggplot(Mosa, aes(`Days of Week`,`Total Reach`)) + geom_boxplot() + ylim(0,800)+ geom_hline(yintercept=avg_totr,color="blue",linetype="dashed") + labs(title="Total Outreach By Day of Week (outliers excluded)")
+dow_raw<-ggplot(Mosa, aes(`Days of Week`,`Total Reach`)) + geom_boxplot()+ geom_hline(yintercept=avg_totr,color="blue",linetype="dashed")+ labs(title="Total Outreach By Day of Week (outliers included)")
+
+dow_cut+dow_raw
+#ggplot(Mosa, aes(`Days of Week`,`Total Reach`)) + geom_col(position = "dodge")
+
+ggplot(Mosa,aes(`Days of Week`,`Total Reach`,fill=`Post Type`))+ geom_col()+labs(title="Post Types and their Total Reach Per Day of Week")
+
+ggplot(Mosa,aes(Time,`Total Reach`,color=`Post Type`))+geom_point()+geom_smooth(se=FALSE) + labs(title="Peak Hours To Post During Different Times of Day")
+
+month_reach <- ggplot(Mosa,aes(Month,`Total Reach`))+geom_col(position="dodge")+labs(title="Total Reach Per Month")
+
+postmon_reach <- ggplot(Mosa,aes(Month,`Total Reach`,fill=`Post Type`))+geom_col(position="dodge",stat="identity")+labs(title="Post Types and Their Reach Per Month")
+
+month_reach + postmon_reach
+
+table(Mosa$`Days of Week`)
+table(Mosa$Month)
+
+```
+
+## Comparing Reach for Non-Followers vs. Followers to Post Type
+
+Reach is the number of followers and non-followers that viewed our post. On average, Reels have the greatest outreach for followers and the greatest variance in outliers for both categories. However, Infographics post reached the highest number of non-followers on average.
+
+In terms of whether post types trigger the same amount of reach between followers and non-followers, there is a very weak positive correlation of 7%, indicating that our content does not appeal to both demographics in the same way.
+
+### What can we gather from these results?
+
+1.  Our IG Post reaches more of our followers than non-followers. From the 95 post on IG, only 9 outperformed with non-followers. The post that reached more of our non-followers were Infographics (4), Reels (3), and Products (2).
+2.  Interactive content performs better within our follower community. It is ranked #2 for outreach in followers, and is ranked the lowest among non-followers. The frequency of post is a mere 3 post from July-December, making up only 3% of all the content posted.
+3.  Reels have the most outliers contributing to the positively skewed data. This could suggest that another factor is driving our outreach numbers or that reels have the most spontaneous growth.
+
+### Suggestions
+
+1.  Top of the Funnel: Increase focus on promoting infographic post when we're trying to drive brand-awareness to non-followers. Also promote Products + Reels to drive organic traffic.
+2.  Bottom of the Funnel: Engaging with more interactive content to promote brand loyalty and reach our followers for exclusive sales + discounts.
+
+Note: some outliers (4) were cut-off in this graph to show a consistent and comparable scale. The median was used because of the positive skew (`pos_skew` 6.18) of the distribution.
+
+```{r fig.height=10, fig.width = 20,echo=FALSE}
+avg_non<-median(Mosa$`Non-Followers`)
+avg_fol<-median(Mosa$Followers)
+
+mosa_non<-ggplot(Mosa,aes(`Post Type`,`Non-Followers`)) + geom_boxplot(outlier.color = "red")+theme_minimal()+labs(title = "Post Type Outreach to Non-followers") + ylim(0,550)+ geom_hline(yintercept=avg_non,color="blue",linetype="dashed")
+
+
+mosa_fol <-ggplot(Mosa,aes(`Post Type`,Followers)) + geom_boxplot(outlier.color = "red")+theme_minimal()+labs(title = "Post Type Outreach to Followers") + ylim(0,550)+geom_hline(yintercept = avg_fol,color="blue",linetype="dashed")
+
+mosa_non + mosa_fol
+
+avg_tot<-median(Mosa$`Total Reach`)
+
+mosa_tot <-ggplot(Mosa,aes(`Post Type`,`Total Reach`)) + geom_boxplot(outlier.color = "red")+theme_minimal()+labs(title = "Post Type Outreach in Total (outliers not included)") + ylim(0,800)+geom_hline(yintercept = avg_tot,color="blue",linetype="dashed")
+
+mosa_tot_raw <-ggplot(Mosa,aes(`Post Type`,`Total Reach`)) + geom_boxplot(outlier.color = "red")+theme_minimal()+labs(title = "Post Type Outreach in Total(outliers included)") +geom_hline(yintercept = avg_tot,color="blue",linetype="dashed")
+
+mosa_tot + mosa_tot_raw
+
+stats_nonfollowers <- summary(Mosa$`Non-Followers`)
+stats_followers <- summary(Mosa$Followers)
+
+sum_infographs_nofol <- summary(Mosa$`Non-Followers`[Mosa$`Post Type`=="Infographic"])
+sum_infographs_fol <- summary(Mosa$Followers[Mosa$`Post Type`=="Infographic"])
+sum_reel_nofol <- summary(Mosa$`Non-Followers`[Mosa$`Post Type`=="Reel"])
+
+corr_nontofol<- percent((cor(Mosa$Followers,Mosa$`Non-Followers`))^2)
+
+pos_skew <- skewness(Mosa$`Non-Followers`)
+
+```
+
+```{r,echo=FALSE}
+
+outper_nonfol <- Mosa$`Post Type`[Mosa$`Non-Followers`>Mosa$Followers]
+num_outpernon <- length(outper_nonfol)
+num_posttot <- length(Mosa$`Post Type`)
+
+reel_freq <- percent(31/95)
+info_freq <- percent(14/95)
+product_freq <- percent(24/95)
+lifestyle_freq <- percent(21/95)
+interact_freq <- percent(3/95)
+graphic_freq <- percent(1/95)
+
+tibble(
+  `post types` =c("Reels","Infographics","Products","Interactive","Graphic","Carousel","Lifestyle"),
+  `post frequencies` = c(length(Mosa$`Non-Followers`[Mosa$`Post Type`=="Reel"]),
+                         length(Mosa$`Non-Followers`[Mosa$`Post Type`=="Infographic"]),
+                         length(Mosa$`Non-Followers`[Mosa$`Post Type`=="Product"]),
+                         length(Mosa$`Non-Followers`[Mosa$`Post Type`=="Interactive"]),
+                         length(Mosa$`Non-Followers`[Mosa$`Post Type`=="Graphic"]),
+                         length(Mosa$`Non-Followers`[Mosa$`Post Type`=="Carosel"]),
+                         length(Mosa$`Non-Followers`[Mosa$`Post Type`=="Lifestyle"])),
+  percentages = c(reel_freq,info_freq,product_freq,interact_freq,graphic_freq,graphic_freq,lifestyle_freq)
+)
+
+
+```
